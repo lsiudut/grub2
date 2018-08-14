@@ -469,6 +469,8 @@ grub_efi_net_config_real (grub_efi_handle_t hnd, char **device,
   struct grub_net_card *card;
   grub_efi_device_path_t *dp;
 
+  grub_printf("DEBUG: efinet initializing!\n");
+
   dp = grub_efi_get_device_path (hnd);
   if (! dp)
     return;
@@ -481,8 +483,10 @@ grub_efi_net_config_real (grub_efi_handle_t hnd, char **device,
     if (card->driver != &efidriver)
       continue;
     cdp = grub_efi_get_device_path (card->efi_handle);
-    if (! cdp)
+    if (! cdp) {
+      grub_printf("DEBUG: !cdp\n");
       continue;
+    }
     if (grub_efi_compare_device_paths (dp, cdp) != 0)
       {
 	grub_efi_device_path_t *ldp, *dup_dp, *dup_ldp;
@@ -497,28 +501,37 @@ grub_efi_net_config_real (grub_efi_handle_t hnd, char **device,
 	ldp = grub_efi_find_last_device_path (dp);
 	if (GRUB_EFI_DEVICE_PATH_TYPE (ldp) != GRUB_EFI_MESSAGING_DEVICE_PATH_TYPE
 	    || (GRUB_EFI_DEVICE_PATH_SUBTYPE (ldp) != GRUB_EFI_IPV4_DEVICE_PATH_SUBTYPE
-		&& GRUB_EFI_DEVICE_PATH_SUBTYPE (ldp) != GRUB_EFI_IPV6_DEVICE_PATH_SUBTYPE))
+		&& GRUB_EFI_DEVICE_PATH_SUBTYPE (ldp) != GRUB_EFI_IPV6_DEVICE_PATH_SUBTYPE)) {
+      grub_printf("DEBUG: first ifbunch continue\n");
 	  continue;
+    }
 	dup_dp = grub_efi_duplicate_device_path (dp);
-	if (!dup_dp)
+	if (!dup_dp) {
+      grub_printf("DEBUG: second if continue\n");
 	  continue;
+    }
 	dup_ldp = grub_efi_find_last_device_path (dup_dp);
 	dup_ldp->type = GRUB_EFI_END_DEVICE_PATH_TYPE;
 	dup_ldp->subtype = GRUB_EFI_END_ENTIRE_DEVICE_PATH_SUBTYPE;
 	dup_ldp->length = sizeof (*dup_ldp);
 	match = grub_efi_compare_device_paths (dup_dp, cdp) == 0;
 	grub_free (dup_dp);
-	if (!match)
+	if (!match) {
+      grub_printf("DEBUG: !match\n");
 	  continue;
-      }
+     }
+    }
     pxe = grub_efi_open_protocol (hnd, &pxe_io_guid,
 				  GRUB_EFI_OPEN_PROTOCOL_GET_PROTOCOL);
-    if (! pxe)
+    if (! pxe) {
+      grub_printf("DEBUG: Y U NO PXE\n", pxe);
       continue;
+    }
     pxe_mode = pxe->mode;
 
     if (pxe_mode->using_ipv6)
       {
+        grub_printf("DEBUG: configure by dhcpv6 reply\n");
 	grub_net_configure_by_dhcpv6_reply (card->name, card, 0,
 					    (struct grub_net_dhcpv6_packet *)
 					    &pxe_mode->dhcp_ack,

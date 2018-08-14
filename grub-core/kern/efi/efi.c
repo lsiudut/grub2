@@ -111,8 +111,10 @@ grub_efi_open_protocol (grub_efi_handle_t handle,
 		       grub_efi_image_handle,
 		       0,
 		       attributes);
-  if (status != GRUB_EFI_SUCCESS)
+  if (status != GRUB_EFI_SUCCESS) {
+    grub_printf("efi_call_6 -> %d\n", status);
     return 0;
+  }
 
   return interface;
 }

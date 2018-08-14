@@ -75,7 +75,7 @@ parse_dhcp_vendor (const char *name, const void *vend, int limit, int *mask)
 	      grub_net_network_level_netaddress_t target;
 	      grub_net_network_level_address_t gw;
 	      char *rname;
-	      
+
 	      target.type = GRUB_NET_NETWORK_LEVEL_PROTOCOL_IPV4;
 	      target.ipv4.base = 0;
 	      target.ipv4.masksize = 0;
@@ -176,7 +176,7 @@ grub_net_configure_by_dhcp_ack (const char *name,
       grub_net_network_level_netaddress_t target;
       grub_net_network_level_address_t gw;
       char *rname;
-	  
+
       target.type = GRUB_NET_NETWORK_LEVEL_PROTOCOL_IPV4;
       target.ipv4.base = bp->server_ip;
       target.ipv4.masksize = 32;
@@ -258,7 +258,7 @@ grub_net_configure_by_dhcp_ack (const char *name,
   if (size > OFFSET_OF (vendor, bp))
     parse_dhcp_vendor (name, &bp->vendor, size - OFFSET_OF (vendor, bp), &mask);
   grub_net_add_ipv4_local (inter, mask);
-  
+
   inter->dhcp_ack = grub_malloc (size);
   if (inter->dhcp_ack)
     {
@@ -528,6 +528,7 @@ find_dhcpv6_bootfile_url (const struct grub_net_dhcpv6_packet *packet,
 
   if (!opt_url)
     {
+      grub_printf("DEBUG: Not bootfile url\n");
       grub_error (GRUB_ERR_IO, N_("no bootfile-url in DHCPv6 option"));
       return;
     }
@@ -585,11 +586,14 @@ find_dhcpv6_bootfile_url (const struct grub_net_dhcpv6_packet *packet,
     {
       *server_ip = grub_malloc (ip_len + 1);
 
-      if (!*server_ip)
-	goto cleanup;
+      if (!*server_ip) {
+        goto cleanup;
+        grub_printf("DEBUG: skip cleanup\n");
+      }
 
       grub_memcpy (*server_ip, ip_start, ip_len);
       *(*server_ip + ip_len) = '\0';
+      grub_printf("DEBUG: I set something, from %p to %u - %s...\n", ip_start, ip_len, *server_ip);
     }
 
   path = ip_end + 1;
@@ -617,6 +621,7 @@ cleanup:
 
       if (server_ip && *server_ip)
 	{
+    grub_printf("DEBUG: free 2\n");
 	  grub_free (server_ip);
 	  *server_ip = NULL;
 	}
@@ -888,9 +893,12 @@ grub_net_configure_by_dhcpv6_reply (const char *name,
 
   grub_env_set_net_property (name, "boot_file", boot_file,
 			  grub_strlen (boot_file));
-
+   
+  grub_printf("DEBUG: is_def = %d\n", is_def);
+  grub_printf("DEBUG: server_ip = %s\n", server_ip);
   if (is_def && server_ip)
     {
+      grub_printf("is_def && server_ip - setting shit!\n");
       grub_net_default_server = grub_strdup (server_ip);
       grub_env_set ("net_default_interface", name);
       grub_env_export ("net_default_interface");
@@ -994,7 +1002,7 @@ grub_net_process_dhcp6 (struct grub_net_buff *nb,
 
       grub_net_configure_by_dhcpv6_reply (name, inf->card,
 	  0, (const struct grub_net_dhcpv6_packet *) nb->data,
-	  (nb->tail - nb->data), 0, 0, 0);
+	  (nb->tail - nb->data), 1, 0, 0);
 
       if (!grub_errno)
 	{
@@ -1076,7 +1084,7 @@ grub_cmd_dhcpopt (struct grub_command *cmd __attribute__ ((unused)),
 	return grub_error (GRUB_ERR_IO, N_("no DHCP option %d found"), num);
 
       taglength = *ptr++;
-	
+
       if (tagtype == num)
 	break;
       ptr += taglength;
@@ -1183,7 +1191,7 @@ grub_cmd_bootp (struct grub_command *cmd __attribute__ ((unused)),
 	return grub_errno;
       }
     ifaces[j].address.type = GRUB_NET_NETWORK_LEVEL_PROTOCOL_DHCP_RECV;
-    grub_memcpy (&ifaces[j].hwaddress, &card->default_address, 
+    grub_memcpy (&ifaces[j].hwaddress, &card->default_address,
 		 sizeof (ifaces[j].hwaddress));
     j++;
   }
@@ -1240,7 +1248,7 @@ grub_cmd_bootp (struct grub_command *cmd __attribute__ ((unused)),
 	  pack->ident = grub_cpu_to_be32 (t);
 	  pack->seconds = grub_cpu_to_be16 (t);
 
-	  grub_memcpy (&pack->mac_addr, &ifaces[j].hwaddress.mac, 6); 
+	  grub_memcpy (&pack->mac_addr, &ifaces[j].hwaddress.mac, 6);
 
 	  grub_netbuff_push (nb, sizeof (*udph));
 
